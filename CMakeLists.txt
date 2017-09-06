@@ -58,7 +58,7 @@ HunterGate(
 )
 
 if(HUNTER_ENABLED)
-    find_package(PythonInterp QUIET)
+    find_package(PythonInterp)
     if(PYTHONINTERP_FOUND)
         hunter_gate_self(
             "${HUNTER_CACHED_ROOT}"
