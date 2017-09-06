@@ -436,7 +436,7 @@ void executeTests(const string& _name, std::pair<fs::path const&, AccessSwitch> 
 		json_spirit::mValue output = doTests(v, true);
 		if (_testPathAppendix.second != test::AccessSwitch::Writable)
 			return; // This happens in -t StateTestsGeneral -- --fillchain --filltests, where the StateTests should not be filled.
-		addClientInfo(output, testfile);
+		addClientInfo(output, testfileUnderTestPath);
 		writeFile(testPath / fs::path(name + ".json"), asBytes(json_spirit::write_string(output, true)));
 	}
 
