@@ -42,7 +42,7 @@ class bcTestFixture {
 				if (!dev::test::Options::get().filltests)
 				{
 					clog << "\\/ " << file.filename().string() << "\n";
-					dev::test::executeTests(file.filename().string(), "/BlockchainTests/bcForgedTest", "/BlockchainTestsFiller/bcForgedTest", dev::test::doBlockchainTests);
+					dev::test::executeTests(file.filename().string(), {fs::path("/BlockchainTests/bcForgedTest"), dev::test::AccessSwitch::ReadOnly}, fs::path("/BlockchainTestsFiller/bcForgedTest"), dev::test::doBlockchainTests);
 				}
 				else
 				{
@@ -83,10 +83,11 @@ class bcTestFixture {
 			testcount += testcount / test::getNetworks().size();
 
 		test::TestOutputHelper testOutputHelper(testcount);
+		test::AccessSwitch accessSwitch = test::Options::get().filltests ? test::AccessSwitch::Writable : test::AccessSwitch::ReadOnly;
 		for (auto const& file: files)
 		{
 			test::TestOutputHelper::setCurrentTestFileName(file.filename().string());
-			test::executeTests(file.filename().string(), "/BlockchainTests/" + _folder, "/BlockchainTestsFiller/" + _folder, dev::test::doBlockchainTestNoLog);
+			test::executeTests(file.filename().string(), {fs::path("BlockchainTests") / fs::path(_folder), accessSwitch}, fs::path("BlockchainTestsFiller") / fs::path(_folder), dev::test::doBlockchainTestNoLog);
 		}
 	}
 };
@@ -115,10 +116,11 @@ class bcTransitionFixture {
 			testcount *= 2;
 
 		test::TestOutputHelper testOutputHelper(testcount);
+		test::AccessSwitch const accessSwitch = test::Options::get().filltests ? test::AccessSwitch::Writable : test::AccessSwitch::ReadOnly;
 		for (auto const& file: files)
 		{
 			test::TestOutputHelper::setCurrentTestFileName(file.filename().string());
-			test::executeTests(file.filename().string(), "/BlockchainTests/" + _subfolder + _folder, "/BlockchainTestsFiller/" + _subfolder +_folder, dev::test::doTransitionTest);
+			test::executeTests(file.filename().string(), {fs::path("BlockchainTests") / _subfolder / _folder, accessSwitch}, fs::path("BlockchainTestsFiller") / _subfolder /_folder, dev::test::doTransitionTest);
 		}
 	}
 };
@@ -149,7 +151,7 @@ class bcGeneralTestsFixture
 		for (auto const& file: files)
 		{
 			test::TestOutputHelper::setCurrentTestFileName(file.filename().string());
-			test::executeTests(file.filename().string(), fs::path("BlockchainTests") / _folder, fs::path("BlockchainTests") / _folder, dev::test::doBlockchainTestNoLog);
+			test::executeTests(file.filename().string(), {fs::path("BlockchainTests") / _folder, test::AccessSwitch::ReadOnly}, fs::path("BlockchainTests") / _folder, dev::test::doBlockchainTestNoLog);
 		}
 	}
 };

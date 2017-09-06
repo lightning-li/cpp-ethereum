@@ -143,11 +143,12 @@ public:
 		if (test::Options::get().filltests)
 			fileCount *= 2; //tests are checked when filled and after they been filled
 		test::TestOutputHelper testOutputHelper(fileCount);
+		test::AccessSwitch const accessSwitch = test::Options::get().filltests && !test::Options::get().fillchain ? test::AccessSwitch::Writable : test::AccessSwitch::ReadOnly;
 
 		for (auto const& file: files)
 		{
 			test::TestOutputHelper::setCurrentTestFileName(file.filename().string());
-			test::executeTests(file.filename().string(), "/GeneralStateTests/"+_folder, "/GeneralStateTestsFiller/"+_folder, dev::test::doStateTests);
+			test::executeTests(file.filename().string(), {fs::path("GeneralStateTests") / fs::path(_folder), accessSwitch}, fs::path("GeneralStateTestsFiller") / fs::path(_folder), dev::test::doStateTests);
 		}
 	}
 };

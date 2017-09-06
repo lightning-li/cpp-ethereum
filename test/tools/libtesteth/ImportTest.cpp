@@ -184,8 +184,8 @@ bytes ImportTest::executeTest()
 			//testName() is changed during the execution of bctest!!!
 			fs::path const tmpFillerName = getTestPath() / fs::path("src/GenStateTestAsBcTemp") / fs::path(TestOutputHelper::caseName()) / fs::path(testname + "Filler.json");
 			writeFile(tmpFillerName, asBytes(json_spirit::write_string((json_spirit::mValue)json, true)));
-			dev::test::executeTests(testname, "/BlockchainTests/GeneralStateTests/" + TestOutputHelper::caseName(),
-											 "/GenStateTestAsBcTemp/" + TestOutputHelper::caseName(), dev::test::doBlockchainTestNoLog);
+			dev::test::executeTests(testname, {fs::path("BlockchainTests/GeneralStateTests") / fs::path(TestOutputHelper::caseName()), dev::test::AccessSwitch::Writable},
+											 fs::path("GenStateTestAsBcTemp") / fs::path(TestOutputHelper::caseName()), dev::test::doBlockchainTestNoLog);
 
 		} //transactions
 	}//fillchain

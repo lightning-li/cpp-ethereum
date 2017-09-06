@@ -492,10 +492,11 @@ public:
 			fileCount *= 2; //tests are checked when filled and after they been filled
 
 		auto testOutput = dev::test::TestOutputHelper(fileCount);
+		test::AccessSwitch const accessSwitch = test::Options::get().filltests ? test::AccessSwitch::Writable : test::AccessSwitch::ReadOnly;
 		for (auto const& file: files)
 		{
 			test::TestOutputHelper::setCurrentTestFileName(file.filename().string());
-			test::executeTests(file.filename().string(), "/VMTests/"+_folder, "/VMTestsFiller/"+_folder, dev::test::doVMTests);
+			test::executeTests(file.filename().string(), {fs::path("VMTests") / fs::path(_folder), accessSwitch}, fs::path("VMTestsFiller") / fs::path(_folder), dev::test::doVMTests);
 		}
 	}
 };
