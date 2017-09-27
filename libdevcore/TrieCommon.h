@@ -101,6 +101,11 @@ inline bool isLeaf(RLP const& _twoItem)
 	return (pl[0] & 0x20) != 0;
 }
 
+// 0000、0001 代表扩展节点
+// 0010、0011 代表叶子节点
+// 最后一位为 0 代表该 key 长度为偶数（需填补 0000）
+// 最后一位为 1 代表该 key 长度为奇数
+
 inline NibbleSlice keyOf(bytesConstRef _hpe)
 {
 	if (!_hpe.size())

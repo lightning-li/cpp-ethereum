@@ -686,6 +686,10 @@ State& dev::eth::createIntermediateState(State& o_s, Block const& _block, unsign
 	return o_s;
 }
 
+// 此 commit 函数调用了封装好的 db 的 insert 函数，仅仅是将要改变的值保存在内存中
+// 在 Block.cpp 函数中的 cleanup 函数中，才会调用 overlayDB 本身的 commit 函数
+// 写入磁盘中
+
 template <class DB>
 AddressHash dev::eth::commit(AccountMap const& _cache, SecureTrieDB<Address, DB>& _state)
 {

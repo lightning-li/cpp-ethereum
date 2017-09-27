@@ -262,15 +262,24 @@ private:
 
 	// in: [K1 & K2, V] (DEL) : nibbles(K1) == _s, 0 < _s <= nibbles(K1 & K2)
 	// out: [K1, H] ; [K2, V] => H (INS)  (being  [K1, [K2, V]]  if necessary)
+	// 输入：_orig 为原始节点的 rlp 形式，_s 为 _orig 节点的 key (表示为 _orig_key)的共同前缀的位数，该函数
+	// 的作用是将 _orig 节点以 _s 为分界，拆分成两个节点 node1/node2，node1 为扩展节点
+	// node2 为叶子/扩展节点（与 _orig 节点类型相同），node1 形式为 [_orig_key[:_s], node2_hash or node2(与 node2 大小是否小于 32 字节有关)]
+	// node2 的形式为 [_orig_key[_s:], _orig_v]
+	// 返回值是 node1 的 rlp 编码形式
+	
 	bytes cleve(RLP const& _orig, unsigned _s);
 
 	// in: [K1, H] (DEL) ; H <= [K2, V] (DEL)  (being  [K1, [K2, V]] (DEL)  if necessary)
 	// out: [K1 & K2, V]
+	// K1 & K2 代表 K1 + K2
+	// 合并操作
 	bytes graft(RLP const& _orig);
 
 	// in: [V0, ... V15, S] (DEL)
 	// out1: [k{i}, Vi]    where i < 16
 	// out2: [k{}, S]      where i == 16
+	// 将分支节点指定 slot 处的节点信息取出
 	bytes merge(RLP const& _orig, byte _i);
 
 	// in: [k{}, S] (DEL)
@@ -297,6 +306,9 @@ private:
 	// data is < 32 bytes. It can safely be used when pruning the trie but won't work correctly
 	// for the special case of the root (which is always looked up via a hash). In that case,
 	// use forceKillNode().
+	// killNode 的作用是：将在插入过程中会改变的节点的在 MemoryDB 中的引用计数减 1，等最后写入磁盘时，避免将引用计数为 0 的节点写入
+	// 在一次插入过程中，会涉及到 patricia trie 树多个节点的改变，比如根节点的改变 root => root', 此时应killNode(root) 节点
+	// 避免最后持久化时，将冗余的节点写入磁盘
 	void killNode(RLP const& _d) { if (_d.data().size() >= 32) forceKillNode(sha3(_d.data())); }
 	void killNode(RLP const& _d, h256 const& _h) { if (_d.data().size() >= 32) forceKillNode(_h); }
 
@@ -850,18 +862,24 @@ template <class DB> bytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, h256 cons
 
 	unsigned itemCount = _orig.itemCount();
 	assert(_orig.isList() && (itemCount == 2 || itemCount == 17));
+	
+	// 如果是扩展节点或者是叶子节点
 	if (itemCount == 2)
 	{
 		// pair...
+		// 从该节点处提取出真正的 key
 		NibbleSlice k = keyOf(_orig);
 
 		// exactly our node - place value in directly.
+		// 待插入的节点 _k 恰好是当前节点 _orig
 		if (k == _k && isLeaf(_orig))
 			return place(_orig, _k, _v);
 
 		// partial key is our key - move down.
+		// 待插入的节点 key _k 包含当前节点的 key k，并且当前节点不是叶子节点，即是扩展节点
 		if (_k.contains(k) && !isLeaf(_orig))
 		{
+			// killNode 会调用 MemoryDB 中的 kill 函数，将 MemoryDB 缓存的节点 m_main 中相应的 key 计数减 1，当为计数为 0 的时候，系统不会将其永久写入到磁盘中
 			if (!_inLine)
 				killNode(_orig, _origHash);
 			RLPStream s(2);
@@ -869,15 +887,17 @@ template <class DB> bytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, h256 cons
 			mergeAtAux(s, _orig[1], _k.mid(k.size()), _v);
 			return s.out();
 		}
-
+		// 求出待插入节点与当前节点 key 的共同前缀的长度
 		auto sh = _k.shared(k);
 //		std::cout << _k << " sh " << k << " = " << sh << std::endl;
+		// 有前缀
 		if (sh)
 		{
 			// shared stuff - cleve at disagreement.
 			auto cleved = cleve(_orig, sh);
 			return mergeAt(RLP(cleved), _k, _v, true);
 		}
+		// 无公共前缀
 		else
 		{
 			// nothing shared - branch
@@ -890,10 +910,12 @@ template <class DB> bytes GenericTrieDB<DB>::mergeAt(RLP const& _orig, h256 cons
 		// branch...
 
 		// exactly our node - place value.
+		// 到分支节点时，key 已经消耗完，因此将对应的值放于分支的第 17 个 slot 中
 		if (_k.size() == 0)
 			return place(_orig, _k, _v);
 
 		// Kill the node.
+		// 
 		if (!_inLine)
 			killNode(_orig, _origHash);
 
@@ -916,6 +938,7 @@ template <class DB> void GenericTrieDB<DB>::mergeAtAux(RLPStream& _out, RLP cons
 	std::string s;
 	// _orig is always a segment of a node's RLP - removing it alone is pointless. However, if may be a hash, in which case we deref and we know it is removable.
 	bool isRemovable = false;
+	// 如果是 list 代表 r 是直接位于相关节点中的，即 len(r) < 32，此时也没必要删除。
 	if (!r.isList() && !r.isEmpty())
 	{
 		s = node(_orig.toHash<h256>());
@@ -1137,6 +1160,7 @@ template <class DB> bytes GenericTrieDB<DB>::cleve(RLP const& _orig, unsigned _s
 #endif
 
 	killNode(_orig);
+	// 叶子节点或者是扩展节点
 	assert(_orig.isList() && _orig.itemCount() == 2);
 	auto k = keyOf(_orig);
 	assert(_s && _s <= k.size());
@@ -1219,9 +1243,13 @@ template <class DB> bytes GenericTrieDB<DB>::branch(RLP const& _orig)
 	{
 		byte b = k[0];
 		for (unsigned i = 0; i < 16; ++i)
+			// 在 branch 中寻找合适的槽
 			if (i == b)
+				// 当该节点是叶子节点时，此时需要使用 streamNode 函数(如果添加的值是大于等于 32 字节，则需要将该 value 存储与底层的数据库中)
+				// size 大于 1 意味着，该节点需在该分支节点的槽中存放剩余的 key 以及 value
 				if (isLeaf(_orig) || k.size() > 1)
 					streamNode(r, rlpList(hexPrefixEncode(k.mid(1), isLeaf(_orig)), _orig[1]));
+				// 该节点为扩展节点，且 size == 1，直接将该扩展节点的 value（存放的是下一个节点的哈希值）
 				else
 					r << _orig[1];
 			else

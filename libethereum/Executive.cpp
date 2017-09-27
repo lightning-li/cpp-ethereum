@@ -180,9 +180,11 @@ void Executive::accrueSubState(SubState& _parentContext)
 void Executive::initialize(Transaction const& _transaction)
 {
 	m_t = _transaction;
+	// 首先获取该交易所需要的基本费用，根据交易的类型（是否是创建合约交易）以及交易中 data 字段的大小
 	m_baseGasRequired = m_t.baseGasRequired(m_sealEngine.evmSchedule(m_envInfo.number()));
 	try
 	{
+		// 只是做一些基本的验证，涉及到以太坊版本升级更新的变化，比如 chainId、大都市的 zerosignature（账户抽象化 eip86）
 		m_sealEngine.verifyTransaction(ImportRequirements::Everything, m_t, m_envInfo.header(), m_envInfo.gasUsed());
 	}
 	catch (Exception const& ex)
@@ -197,6 +199,7 @@ void Executive::initialize(Transaction const& _transaction)
 		u256 nonceReq;
 		try
 		{
+			// sender() 函数根据交易结构中的签名包含的 r、s、v 恢复出 sender，因此可以判断签名是否有效
 			nonceReq = m_s.getNonce(m_t.sender());
 		}
 		catch (InvalidSignature const&)
@@ -205,6 +208,7 @@ void Executive::initialize(Transaction const& _transaction)
 			m_excepted = TransactionException::InvalidSignature;
 			throw;
 		}
+		// 判断交易的 nonce 值与发送者账户的 nonce 值是否相同
 		if (m_t.nonce() != nonceReq)
 		{
 			clog(ExecutiveWarnChannel) << "Sender: " << m_t.sender().hex() << " Invalid Nonce: Require" << nonceReq << " Got" << m_t.nonce();
@@ -213,6 +217,7 @@ void Executive::initialize(Transaction const& _transaction)
 		}
 
 		// Avoid unaffordable transactions.
+		// 预先判断发送者账户是否有足够的余额
 		bigint gasCost = (bigint)m_t.gas() * m_t.gasPrice();
 		bigint totalCost = m_t.value() + gasCost;
 		if (m_s.balance(m_t.sender()) < totalCost)

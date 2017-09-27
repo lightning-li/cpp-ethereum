@@ -88,8 +88,9 @@ public:
 	u256 homesteadForkBlock;
 	u256 EIP150ForkBlock;
 	u256 EIP158ForkBlock;
+	// byzantium & constantinople 是 Metropolis 大都市版本实施的两个阶段
 	u256 byzantiumForkBlock;
-	u256 constantinopleForkBlock;
+	u256 constantinopleForkBlock;   
 	u256 daoHardforkBlock;
 	int chainID = 0; // Distinguishes different chains (mainnet, Ropsten, etc).
 	int networkID = 0; // Distinguishes different sub protocols.

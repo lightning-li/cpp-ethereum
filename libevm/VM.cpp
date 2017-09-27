@@ -33,6 +33,7 @@ using namespace dev::eth;
 #define EVM_HACK_MUL_64 0
 #define EVM_HACK_DUP_64 0
 
+// 给定起始量与大小，计算出使用的内存大小
 
 uint64_t VM::memNeed(u256 _offset, u256 _size)
 {
@@ -115,6 +116,13 @@ void VM::adjustStack(unsigned _removed, unsigned _added)
 #endif
 }
 
+// 该函数的作用是更新存储数据需要的 gas 花费
+// m_SP[0] 为要存储的位置，m_SP[1] 为要在 m_SP[0] 存储的值
+// 该函数根据从无到有，从有到无，从有到有三种情况更新存储的花费
+// 分别为 sstoreSetGas(20000)、sstoreResetGas(5000 并且给予一定的退款 sstoreRefundGas 15000)
+//  sstoreResetGas(5000)
+// 因此，说明第一次使用未初始化的存储是昂贵的
+
 void VM::updateSSGas()
 {
 	if (!m_ext->store(m_SP[0]) && m_SP[1])
@@ -128,6 +136,9 @@ void VM::updateSSGas()
 		m_runGas = toInt63(m_schedule->sstoreResetGas);
 }
 
+// 返回内存使用需要的 gas 花费，以 32 个字节为单位
+// 计算公式为 Cmem(a) = Gmemory * a + a * a / 512
+// 在使用 724 字节之前是线性上升的，之后，所需花费急剧上升
 
 uint64_t VM::gasForMem(u512 _size)
 {
@@ -135,12 +146,16 @@ uint64_t VM::gasForMem(u512 _size)
 	return toInt63((u512)m_schedule->memoryGas * s + s * s / m_schedule->quadCoeffDiv);
 }
 
+// 返回剩余可用的 gas
+
 void VM::updateIOGas()
 {
 	if (m_io_gas < m_runGas)
 		throwOutOfGas();
 	m_io_gas -= m_runGas;
 }
+
+// 更新当前使用的 gas：包括内存增长所需的花费以及拷贝所需的花费
 
 void VM::updateGas()
 {
@@ -151,6 +166,8 @@ void VM::updateGas()
 		throwOutOfGas();
 }
 
+// 更新使用的内存大小以及当前使用的 gas
+
 void VM::updateMem(uint64_t _newMem)
 {
 	m_newMemSize = (_newMem + 31) / 32 * 32;
@@ -159,12 +176,19 @@ void VM::updateMem(uint64_t _newMem)
 		m_mem.resize(m_newMemSize);
 }
 
+// 计算日志记录所需要的 gas 花费
+// m_OP 表示当前的操作码
+// 其中 m_SP[0] 与 m_SP[1] 为保存日志中 data 字段所需要的内存数组中的起始位置与大小
+// 因此需要计算消耗内存使用的 gas 花费
+
 void VM::logGasMem()
 {
 	unsigned n = (unsigned)m_OP - (unsigned)Instruction::LOG0;
 	m_runGas = toInt63(m_schedule->logGas + m_schedule->logTopicGas * n + u512(m_schedule->logDataGas) * m_SP[1]);
 	updateMem(memNeed(m_SP[0], m_SP[1]));
 }
+
+// 从合约字节码中抓取下一条指令，调整栈中的元素及计算操作码 gas 花费
 
 void VM::fetchInstruction()
 {
@@ -188,6 +212,7 @@ void VM::fetchInstruction()
 ///////////////////////////////////////////////////////////////////////////////
 //
 // interpreter entry point
+// EVM 执行入口
 
 owning_bytes_ref VM::exec(u256& _io_gas, ExtVMFace& _ext, OnOpFunc const& _onOp)
 {
@@ -201,6 +226,8 @@ owning_bytes_ref VM::exec(u256& _io_gas, ExtVMFace& _ext, OnOpFunc const& _onOp)
 	try
 	{
 		// trampoline to minimize depth of call stack when calling out
+		// 首先会初始化 JumpDest table，在 optimize() 函数中实现
+		
 		m_bounce = &VM::initEntry;
 		do
 			(this->*m_bounce)();
