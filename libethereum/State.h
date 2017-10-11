@@ -349,9 +349,9 @@ private:
 
 	OverlayDB m_db;								///< Our overlay for the state tree.
 	SecureTrieDB<Address, OverlayDB> m_state;	///< Our state tree, as an OverlayDB DB.
-	mutable std::unordered_map<Address, Account> m_cache;	///< Our address cache. This stores the states of each address that has (or at least might have) been changed.
-	mutable std::vector<Address> m_unchangedCacheEntries;	///< Tracks entries in m_cache that can potentially be purged if it grows too large.
-	mutable std::set<Address> m_nonExistingAccountsCache;	///< Tracks addresses that are known to not exist.
+	mutable std::unordered_map<Address, Account> m_cache;	///< "已读取"账户缓存. Our address cache. This stores the states of each address that has (or at least might have) been changed.
+	mutable std::vector<Address> m_unchangedCacheEntries;	///< 位于 m_cache 中但是未进行改变的账户缓存，作用：如果 m_cache 缓存过大，可根据该缓存清空 m_cache. Tracks entries in m_cache that can potentially be purged if it grows too large.
+	mutable std::set<Address> m_nonExistingAccountsCache;	///< 已知的"不存在"账户缓存 Tracks addresses that are known to not exist. 
 	AddressHash m_touched;						///< Tracks all addresses touched so far.
 
 	u256 m_accountStartNonce;

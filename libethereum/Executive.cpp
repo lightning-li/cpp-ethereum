@@ -184,7 +184,7 @@ void Executive::initialize(Transaction const& _transaction)
 	m_baseGasRequired = m_t.baseGasRequired(m_sealEngine.evmSchedule(m_envInfo.number()));
 	try
 	{
-		// 只是做一些基本的验证，涉及到以太坊版本升级更新的变化，比如 chainId、大都市的 zerosignature（账户抽象化 eip86）
+		// 只是做一些基本的验证，涉及到以太坊版本升级更新的变化，比如 EIP155 重放攻击保护、chainId、大都市的 zerosignature（账户抽象化 eip86）
 		m_sealEngine.verifyTransaction(ImportRequirements::Everything, m_t, m_envInfo.header(), m_envInfo.gasUsed());
 	}
 	catch (Exception const& ex)
@@ -192,7 +192,7 @@ void Executive::initialize(Transaction const& _transaction)
 		m_excepted = toTransactionException(ex);
 		throw;
 	}
-
+	std::cout << "Does tx have zero signature : " << m_t.hasZeroSignature() << std::endl;
 	if (!m_t.hasZeroSignature())
 	{
 		// Avoid invalid transactions.
@@ -263,7 +263,7 @@ bool Executive::call(CallParameters const& _p, u256 const& _gasPrice, Address co
 	}
 
 	m_savepoint = m_s.savepoint();
-
+	// 如果调用的是预编译好的合约
 	if (m_sealEngine.isPrecompiled(_p.codeAddress, m_envInfo.number()))
 	{
 		bigint g = m_sealEngine.costOfPrecompiled(_p.codeAddress, _p.data, m_envInfo.number());
@@ -300,6 +300,8 @@ bool Executive::call(CallParameters const& _p, u256 const& _gasPrice, Address co
 	else
 	{
 		m_gas = _p.gas;
+		
+		// 如果该交易接收方的账户下有代码，当作是合约调用
 		if (m_s.addressHasCode(_p.codeAddress))
 		{
 			bytes const& c = m_s.code(_p.codeAddress);

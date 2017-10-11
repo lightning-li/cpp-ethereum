@@ -38,6 +38,7 @@ class SealEngineFace;
 
 /**
  * @brief Externality interface for the Virtual Machine providing access to world state.
+ * 给 EVM 虚拟机提供访问、修改区块链账户信息的功能
  */
 class ExtVM: public ExtVMFace
 {

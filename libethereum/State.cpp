@@ -168,15 +168,17 @@ Account const* State::account(Address const& _a) const
 
 Account* State::account(Address const& _addr)
 {
+	// 首先从 "已读取" 缓存（已经读取的账户）m_cache 中寻找账户信息
 	auto it = m_cache.find(_addr);
 	if (it != m_cache.end())
 		return &it->second;
-
+    // 若 m_cache 中不存在，从已知的 "不存在" 账户缓存中寻找账户信息
 	if (m_nonExistingAccountsCache.count(_addr))
 		return nullptr;
-
+	// 若上述两个缓存中均没找到，在底层数据库中寻找
 	// Populate basic info.
 	string stateBack = m_state.at(_addr);
+	// 从底层数据库中没找到账户，则更新 "不存在" 账户缓存
 	if (stateBack.empty())
 	{
 		m_nonExistingAccountsCache.insert(_addr);
@@ -184,7 +186,7 @@ Account* State::account(Address const& _addr)
 	}
 
 	clearCacheIfTooLarge();
-
+	// 从底层数据库中找到账户信息，则更新 "已读取" m_cache 缓存，并更新 "已读取但是未改变" 缓存
 	RLP state(stateBack);
 	auto i = m_cache.emplace(
 		std::piecewise_construct,

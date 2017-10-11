@@ -35,6 +35,8 @@
 #include <fstream>
 #include <iostream>
 #include <ctime>
+#include <libethashseal/genesis/test/mainNetworkTest.cpp>
+
 using namespace std;
 using namespace dev;
 using namespace eth;
@@ -78,6 +80,7 @@ void help()
 void version()
 {
 	cout << "ethvm version " << dev::Version << "\n";
+	cout << "By Li Kang, 2017.\n";
 	cout << "By Gav Wood, 2015.\n";
 	cout << "Build: " << DEV_QUOTED(ETH_BUILD_PLATFORM) << "/" << DEV_QUOTED(ETH_BUILD_TYPE) << "\n";
 	exit(0);
@@ -130,6 +133,7 @@ public:
 int main(int argc, char** argv)
 {
 	setDefaultOrCLocale();
+//	cout << c_genesisInfoMainNetworkTest << endl;
 	string inputFile;
 	Mode mode = Mode::Statistics;
 	VMKind vmKind = VMKind::Interpreter;
@@ -146,10 +150,11 @@ int main(int argc, char** argv)
 	blockHeader.setGasLimit(maxBlockGasLimit());
 	bytes data;
 	bytes code;
-
-	Ethash::init();
+	// 注册并初始化共识引擎
+	//Ethash::init();
 	NoProof::init();
-
+	//cout << dev::eth::__eth_registerSealEngineFactoryNoProof()->name() << endl;
+	//cout << dev::eth::__eth_registerSealEngineFactoryEthash()->name() << endl;
 	for (int i = 1; i < argc; ++i)
 	{
 		string arg = argv[i];
@@ -283,13 +288,18 @@ int main(int argc, char** argv)
 		t = Transaction(value, gasPrice, gas, data, 0);
 
 	state.addBalance(sender, value);
-
-	unique_ptr<SealEngineFace> se(ChainParams(genesisInfo(networkName)).createSealEngine());
+	cout << sender.hex() << " has " << state.balance(sender) << " wei" << endl;
+	ChainParams cc(genesisInfo(networkName));
+	cc.sealEngineName = "NoProof";
+	unique_ptr<SealEngineFace> se(cc.createSealEngine());
+	//unique_ptr<SealEngineFace> se(ChainParams(genesisInfo(networkName)).createSealEngine());
 	LastBlockHashes lastBlockHashes;
 	EnvInfo const envInfo(blockHeader, lastBlockHashes, 0);
 	Executive executive(state, envInfo, *se);
 	ExecutionResult res;
 	executive.setResultRecipient(res);
+	
+	// 这个调用导致 Executive 实例不会进行验签的工作
 	t.forceSender(sender);
 
 	unordered_map<byte, pair<unsigned, bigint>> counts;
@@ -333,6 +343,21 @@ int main(int argc, char** argv)
 		for (LogEntry const& l: logs)
 		{
 			cout << "  " << l.address.hex() << ": " << toHex(t.data()) << "\n";
+			cout << "log data field ";
+			string ss = "";
+			for (auto i = l.data.begin(); i != l.data.end(); ++i) {
+				if (int(*i) / 16 < 10) {
+					ss.push_back(int(*i) / 16 + 48);
+				} else {
+					ss.push_back(int(*i) / 16 - 10 + 97);
+				}
+				if (int(*i) % 16 < 10) {
+					ss.push_back(int(*i) % 16 + 48);
+				} else {
+					ss.push_back(int(*i) % 16 - 10 + 97);
+				}
+			}
+			cout << ss << endl;
 			for (h256 const& t: l.topics)
 				cout << "    " << t.hex() << "\n";
 		}

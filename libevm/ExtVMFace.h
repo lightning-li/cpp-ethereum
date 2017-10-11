@@ -224,6 +224,11 @@ struct CallParameters
 	OnOpFunc onOp;
 };
 
+// EVM 执行时使用到的上下文环境, 包括：
+// 1. 当前区块头信息（EVM 中 COINBASE/TIMESTAMP/NUMBER/DIFFICULTY/GASLIMIT 操作码会用到当前区块头信息）
+// 2. 获取最近区块哈希值的对象，以太坊中最多允许获得最近 256 个完整区块的哈希值 (EVM 中 BLOCKHASH 操作码会用到该信息)
+// 3. 已使用的 gas
+
 class EnvInfo
 {
 public:
@@ -257,6 +262,7 @@ private:
 
 /**
  * @brief Interface and null implementation of the class for specifying VM externalities.
+ * 对应黄皮书中的 9.3. Execution Environment 以及提供给 EVM 访问、修改区块链账户的信息
  */
 class ExtVMFace: public evm_context
 {

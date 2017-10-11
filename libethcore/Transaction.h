@@ -148,6 +148,8 @@ public:
 	bool hasZeroSignature() const { return m_vrs && !m_vrs->s && !m_vrs->r; }
 
 	/// @returns true if the transaction uses EIP155 replay protection
+	/// 为什么是 -4？因为当 chainId = -4 时，计算出的签名中的 v 是 27 或 28，与 EIP155 重放攻击保护前是一致的
+	
 	bool isReplayProtected() const { return m_chainId != -4; }
 
 	/// @returns the signature of the transaction (the signature has the sender encoded in it)
