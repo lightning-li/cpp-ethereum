@@ -289,6 +289,7 @@ int main(int argc, char** argv)
 
 	state.addBalance(sender, value);
 	cout << sender.hex() << " has " << state.balance(sender) << " wei" << endl;
+	// 预编译合约在构建过程中初始化
 	ChainParams cc(genesisInfo(networkName));
 	cc.sealEngineName = "NoProof";
 	unique_ptr<SealEngineFace> se(cc.createSealEngine());
