@@ -1558,8 +1558,12 @@ void VM::interpretCases()
 			m_runGas = toInt63(m_schedule->sloadGas);
 			ON_OP();
 			updateIOGas();
-
+			std::cout << "-------SLOAD-------" << std::endl;
+			std::cout << m_SP[0] << endl;
 			m_SPP[0] = m_ext->store(m_SP[0]);
+			
+			std::cout << m_SPP[0] << endl;
+			std::cout << "-------FINISH------" << std::endl;
 		}
 		NEXT
 

@@ -59,7 +59,8 @@ R"E(
 		"0000000000000000000000000000000000000005": { "wei": "1", "precompiled": { "name": "modexp" } },
 		"0000000000000000000000000000000000000006": { "wei": "1", "precompiled": { "name": "alt_bn128_G1_add", "linear": { "base": 500, "word": 0 } } },
 		"0000000000000000000000000000000000000007": { "wei": "1", "precompiled": { "name": "alt_bn128_G1_mul", "linear": { "base": 2000, "word": 0 } } },
-		"0000000000000000000000000000000000000008": { "wei": "1", "precompiled": { "name": "alt_bn128_pairing_product" } }
+		"0000000000000000000000000000000000000008": { "wei": "1", "precompiled": { "name": "alt_bn128_pairing_product" } },
+		"000000000000000000000000000000000000000f": { "wei": "1", "precompiled": { "name": "selfadd", "linear": { "base": 3000, "word": 0 }}}
 	}
 }
 )E";

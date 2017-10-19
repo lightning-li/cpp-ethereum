@@ -83,6 +83,19 @@ ETH_REGISTER_PRECOMPILED(ecrecover)(bytesConstRef _in)
 	return {true, {}};
 }
 
+// lkadd precompiled contract 
+// in : u256 a 
+// out : (a + a) % 256
+
+ETH_REGISTER_PRECOMPILED(selfadd)(bytesConstRef _in) {
+	int a = *(_in.data() + 31);
+	
+	std::vector<byte> res(1, 0);
+	res[0] = (a + a) % 256;
+	cout << "selfadd res " << int(res[0]) << endl;
+	return {true, res};
+}
+
 ETH_REGISTER_PRECOMPILED(sha256)(bytesConstRef _in)
 {
 	return {true, dev::sha256(_in).asBytes()};
