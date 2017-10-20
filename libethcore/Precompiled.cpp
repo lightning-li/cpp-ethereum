@@ -83,7 +83,7 @@ ETH_REGISTER_PRECOMPILED(ecrecover)(bytesConstRef _in)
 	return {true, {}};
 }
 
-// lkadd precompiled contract 
+// selfadd precompiled contract 
 // in : u256 a 
 // out : (a + a) % 256
 
